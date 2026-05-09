@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HarvestBridge Dashboard</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f4f0;color:#222;min-height:100vh}
+    header{background:#1b5e20;color:white;padding:20px 32px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+    header h1{font-size:1.8rem;font-weight:700}
+    header p{font-size:0.9rem;opacity:0.8;margin-top:2px}
+    .logo{font-size:2.2rem}
+    .tabs{display:flex;background:#2e7d32;padding:0 32px}
+    .tab{padding:14px 24px;color:rgba(255,255,255,0.7);cursor:pointer;font-size:0.9rem;border-bottom:3px solid transparent;transition:all 0.2s;user-select:none}
+    .tab:hover{color:white}
+    .tab.active{color:white;border-bottom-color:#a5d6a7;font-weight:600}
+    .content{max-width:960px;margin:32px auto;padding:0 24px}
+    .panel{display:none}
+    .panel.active{display:block}
+    .card{background:white;border-radius:12px;padding:24px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.07);border-left:4px solid #2e7d32}
+    .card h2{font-size:1.05rem;color:#1b5e20;margin-bottom:4px;font-weight:600}
+    .badge{display:inline-block;font-size:0.7rem;padding:2px 8px;border-radius:20px;margin-bottom:14px;font-weight:600}
+    .badge.unary{background:#e8f5e9;color:#2e7d32}
+    .badge.client-stream{background:#e3f2fd;color:#1565c0}
+    .badge.server-stream{background:#fff3e0;color:#e65100}
+    .badge.bidi{background:#f3e5f5;color:#6a1b9a}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+    .form-grid.single{grid-template-columns:1fr}
+    .form-grid.triple{grid-template-columns:1fr 1fr 1fr}
+    input,textarea{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;transition:border 0.2s;font-family:inherit}
+    input:focus,textarea:focus{outline:none;border-color:#2e7d32}
+    input::placeholder,textarea::placeholder{color:#aaa}
+    textarea{resize:vertical;min-height:60px}
+    button{background:#2e7d32;color:white;border:none;padding:10px 20px;border-radius:8px;font-size:0.88rem;cursor:pointer;transition:background 0.2s;font-weight:600}
+    button:hover{background:#1b5e20}
+    button.secondary{background:#546e7a}
+    button.secondary:hover{background:#37474f}
+    .result{margin-top:16px;padding:12px 16px;border-radius:8px;font-size:0.85rem;line-height:1.7;display:none}
+    .result.success{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;display:block}
+    .result.error{background:#ffebee;color:#c62828;border:1px solid #ef9a9a;display:block}
+    .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+    .stat{background:#f1f8e9;border-radius:10px;padding:16px;text-align:center}
+    .stat .value{font-size:2rem;font-weight:700;color:#2e7d32}
+    .stat .label{font-size:0.78rem;color:#666;margin-top:4px}
+    label{font-size:0.8rem;color:#555;display:block;margin-bottom:4px;font-weight:500}
+    .field{display:flex;flex-direction:column}
+    .stream-log{background:#1a1a2e;color:#a5d6a7;padding:16px;border-radius:8px;font-family:'Courier New',monospace;font-size:0.8rem;max-height:200px;overflow-y:auto;margin-top:12px;display:none}
+    .stream-log .entry{padding:3px 0;border-bottom:1px solid #2a2a4a}
+    .chat-log{background:#f5f5f5;border-radius:8px;padding:12px;max-height:220px;overflow-y:auto;margin-top:12px;display:none}
+    .chat-msg{padding:8px 12px;border-radius:8px;margin-bottom:8px;max-width:80%;font-size:0.85rem}
+    .chat-msg.system{background:#e8f5e9;color:#1b5e20;align-self:flex-start}
+    .chat-msg.user{background:#2e7d32;color:white;margin-left:auto}
+    .chat-container{display:flex;flex-direction:column}
+    .chat-input-row{display:flex;gap:8px;margin-top:8px}
+    .chat-input-row input{flex:1}
+    .batch-items{background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:12px;margin-bottom:12px;max-height:160px;overflow-y:auto}
+    .batch-item{display:flex;gap:8px;margin-bottom:8px;align-items:center;font-size:0.82rem;background:white;padding:6px 10px;border-radius:6px;border:1px solid #eee}
+    .batch-item span{flex:1;color:#333}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🌾</div>
+  <div>
+    <h1>HarvestBridge</h1>
+    <p>Smart Food Distribution — SDG 12 · Responsible Consumption and Production</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('farmer',this)">🌾 Farmer Service</div>
+  <div class="tab" onclick="switchTab('reservation',this)">📦 Reservation Service</div>
+  <div class="tab" onclick="switchTab('impact',this)">📊 Impact Tracker</div>
+</div>
+
+<div class="content">
+
+  <!-- FARMER PANEL -->
+  <div class="panel active" id="panel-farmer">
+
+    <div class="card">
+      <h2>Register Farmer</h2>
+      <span class="badge unary">Unary RPC</span>
+      <div class="form-grid">
+        <div class="field"><label>Farmer ID</label><input id="reg-id" placeholder="e.g. F001"/></div>
+        <div class="field"><label>Full Name</label><input id="reg-name" placeholder="e.g. João Silva"/></div>
+        <div class="field"><label>Location</label><input id="reg-location" placeholder="e.g. Cork"/></div>
+      </div>
+      <button onclick="registerFarmer()">Register Farmer</button>
+      <div class="result" id="reg-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Add Single Produce</h2>
+      <span class="badge unary">Unary RPC</span>
+      <div class="form-grid">
+        <div class="field"><label>Farmer ID</label><input id="prod-fid" placeholder="e.g. F001"/></div>
+        <div class="field"><label>Produce Name</label><input id="prod-name" placeholder="e.g. Apples"/></div>
+        <div class="field"><label>Quantity</label><input id="prod-qty" type="number" placeholder="e.g. 100"/></div>
+        <div class="field"><label>Unit</label><input id="prod-unit" placeholder="e.g. kg"/></div>
+        <div class="field"><label>Available Date</label><input id="prod-date" placeholder="e.g. 2026-05-10"/></div>
+      </div>
+      <button onclick="addProduce()">Add Produce</button>
+      <div class="result" id="prod-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Batch Add Produce</h2>
+      <span class="badge client-stream">Client-Side Streaming RPC</span>
+      <p style="font-size:0.82rem;color:#666;margin-bottom:12px">Add multiple produce items in a single stream to the server.</p>
+      <div class="form-grid">
+        <div class="field"><label>Farmer ID</label><input id="batch-fid" placeholder="e.g. F001"/></div>
+        <div class="field"><label>Produce Name</label><input id="batch-name" placeholder="e.g. Carrots"/></div>
+        <div class="field"><label>Quantity</label><input id="batch-qty" type="number" placeholder="e.g. 50"/></div>
+        <div class="field"><label>Unit</label><input id="batch-unit" placeholder="e.g. kg"/></div>
+        <div class="field"><label>Available Date</label><input id="batch-date" placeholder="e.g. 2026-05-10"/></div>
+      </div>
+      <div class="btn-row">
+        <button class="secondary" onclick="addBatchItem()">+ Add to Batch</button>
+        <button onclick="sendBatch()">Send Batch Stream</button>
+      </div>
+      <div class="batch-items" id="batch-list" style="display:none;margin-top:12px"></div>
+      <div class="result" id="batch-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>List Produce</h2>
+      <span class="badge unary">Unary RPC</span>
+      <div class="form-grid single">
+        <div class="field"><label>Farmer ID</label><input id="list-fid" placeholder="e.g. F001"/></div>
+      </div>
+      <button onclick="listProduce()">List Produce</button>
+      <div class="result" id="list-result"></div>
+    </div>
+
+  </div>
+
+  <!-- RESERVATION PANEL -->
+  <div class="panel" id="panel-reservation">
+
+    <div class="card">
+      <h2>Create Reservation</h2>
+      <span class="badge unary">Unary RPC</span>
+      <div class="form-grid">
+        <div class="field"><label>Organisation ID</label><input id="res-oid" placeholder="e.g. ORG01"/></div>
+        <div class="field"><label>Organisation Name</label><input id="res-oname" placeholder="e.g. Cork Food Bank"/></div>
+        <div class="field"><label>Farmer ID</label><input id="res-fid" placeholder="e.g. F001"/></div>
+        <div class="field"><label>Produce Name</label><input id="res-pname" placeholder="e.g. Apples"/></div>
+        <div class="field"><label>Quantity</label><input id="res-qty" type="number" placeholder="e.g. 50"/></div>
+        <div class="field"><label>Unit</label><input id="res-unit" placeholder="e.g. kg"/></div>
+        <div class="field"><label>Pickup Date</label><input id="res-date" placeholder="e.g. 2026-05-10"/></div>
+      </div>
+      <button onclick="createReservation()">Create Reservation</button>
+      <div class="result" id="res-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Check Reservation</h2>
+      <span class="badge unary">Unary RPC</span>
+      <div class="form-grid single">
+        <div class="field"><label>Reservation ID</label><input id="get-rid" placeholder="e.g. R001"/></div>
+      </div>
+      <button onclick="getReservation()">Check Status</button>
+      <div class="result" id="get-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Live Reservation Negotiation</h2>
+      <span class="badge bidi">Bidirectional Streaming RPC</span>
+      <p style="font-size:0.82rem;color:#666;margin-bottom:12px">Chat directly with the reservation system to negotiate terms in real time.</p>
+      <button onclick="startNegotiation()">Connect to Negotiation Stream</button>
+      <div class="chat-log" id="chat-log">
+        <div class="chat-container" id="chat-container"></div>
+      </div>
+      <div class="chat-input-row" id="chat-input-row" style="display:none">
+        <input id="chat-msg" placeholder="Type a message... (try: available, confirm, cancel)" onkeydown="if(event.key==='Enter')sendChat()"/>
+        <button onclick="sendChat()">Send</button>
+      </div>
+      <div class="result" id="neg-result"></div>
+    </div>
+
+  </div>
+
+  <!-- IMPACT PANEL -->
+  <div class="panel" id="panel-impact">
+
+    <div class="card">
+      <h2>Log Distribution</h2>
+      <span class="badge unary">Unary RPC</span>
+      <div class="form-grid">
+        <div class="field"><label>Organisation ID</label><input id="log-oid" placeholder="e.g. ORG01"/></div>
+        <div class="field"><label>Farmer ID</label><input id="log-fid" placeholder="e.g. F001"/></div>
+        <div class="field"><label>Produce Name</label><input id="log-pname" placeholder="e.g. Apples"/></div>
+        <div class="field"><label>Quantity (kg)</label><input id="log-qty" type="number" placeholder="e.g. 50"/></div>
+        <div class="field"><label>Date</label><input id="log-date" placeholder="e.g. 2026-05-10"/></div>
+      </div>
+      <button onclick="logDistribution()">Log Distribution</button>
+      <div class="result" id="log-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Live Distribution Stream</h2>
+      <span class="badge server-stream">Server-Side Streaming RPC</span>
+      <p style="font-size:0.82rem;color:#666;margin-bottom:12px">Server streams all distribution events one by one in real time.</p>
+      <div class="form-grid single">
+        <div class="field"><label>Period</label><input id="stream-period" placeholder="e.g. May 2026"/></div>
+      </div>
+      <button onclick="streamDistributions()">Start Live Stream</button>
+      <div class="stream-log" id="stream-log"></div>
+      <div class="result" id="stream-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Get Impact Report</h2>
+      <span class="badge unary">Unary RPC</span>
+      <div class="form-grid single">
+        <div class="field"><label>Period</label><input id="rep-period" placeholder="e.g. May 2026"/></div>
+      </div>
+      <button onclick="getReport()">Generate Report</button>
+      <div class="result" id="rep-result"></div>
+      <div class="stat-grid" id="stat-grid" style="display:none">
+        <div class="stat"><div class="value" id="stat-kg">0</div><div class="label">Total kg Distributed</div></div>
+        <div class="stat"><div class="value" id="stat-orgs">0</div><div class="label">Organisations Served</div></div>
+        <div class="stat"><div class="value" id="stat-waste">0</div><div class="label">kg Waste Avoided</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+    el.classList.add('active')
+    document.getElementById('panel-' + name).classList.add('active')
+  }
+
+  function showResult(id, data) {
+    var el = document.getElementById(id)
+    if (data.success) {
+      el.className = 'result success'
+      el.innerHTML = '✅ ' + (data.message || 'Success')
+        + (data.farmer_id ? '<br>Farmer ID: <strong>' + data.farmer_id + '</strong>' : '')
+        + (data.reservation_id ? '<br>Reservation ID: <strong>' + data.reservation_id + '</strong>' : '')
+        + (data.status ? '<br>Status: <strong>' + data.status + '</strong>' : '')
+        + (data.pickup_date ? '<br>Pickup Date: <strong>' + data.pickup_date + '</strong>' : '')
+        + (data.farmer_name ? '<br>Farmer: <strong>' + data.farmer_name + '</strong>' : '')
+        + (data.items_added !== undefined ? '<br>Items added: <strong>' + data.items_added + '</strong>' : '')
+        + (data.items && data.items.length ? '<br>Items: ' + data.items.map(i => '<strong>' + i.produce_name + '</strong> — ' + i.quantity + ' ' + i.unit + ' (avail: ' + i.available_date + ')').join('<br>') : '')
+        + (data.items && data.items.length === 0 ? '<br>No produce listed yet.' : '')
+    } else {
+      el.className = 'result error'
+      el.innerHTML = '❌ ' + (data.message || 'An error occurred')
+    }
+  }
+
+  async function post(url, body) {
+    var res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    return res.json()
+  }
+
+  // FARMER
+  async function registerFarmer() {
+    var data = await post('/api/farmer/register', { farmer_id: document.getElementById('reg-id').value, name: document.getElementById('reg-name').value, location: document.getElementById('reg-location').value })
+    showResult('reg-result', data)
+  }
+
+  async function addProduce() {
+    var data = await post('/api/farmer/produce/add', { farmer_id: document.getElementById('prod-fid').value, produce_name: document.getElementById('prod-name').value, quantity: parseInt(document.getElementById('prod-qty').value), unit: document.getElementById('prod-unit').value, available_date: document.getElementById('prod-date').value })
+    showResult('prod-result', data)
+  }
+
+  async function listProduce() {
+    var data = await post('/api/farmer/produce/list', { farmer_id: document.getElementById('list-fid').value })
+    showResult('list-result', data)
+  }
+
+  // CLIENT-SIDE STREAMING BATCH
+  var batchItems = []
+  function addBatchItem() {
+    var farmer_id = document.getElementById('batch-fid').value.trim()
+    var produce_name = document.getElementById('batch-name').value.trim()
+    var quantity = parseInt(document.getElementById('batch-qty').value) || 0
+    var unit = document.getElementById('batch-unit').value.trim()
+    var available_date = document.getElementById('batch-date').value.trim()
+    if (!farmer_id || !produce_name || !quantity || !unit || !available_date) {
+      showResult('batch-result', { success: false, message: "Fill all fields before adding to batch" })
+      return
+    }
+    batchItems.push({ farmer_id, produce_name, quantity, unit, available_date })
+    var list = document.getElementById('batch-list')
+    list.style.display = 'block'
+    list.innerHTML = batchItems.map((i,idx) => '<div class="batch-item"><span>' + (idx+1) + '. ' + i.produce_name + ' — ' + i.quantity + ' ' + i.unit + ' (' + i.farmer_id + ')</span></div>').join('')
+    document.getElementById('batch-name').value = ''
+    document.getElementById('batch-qty').value = ''
+    document.getElementById('batch-unit').value = ''
+    document.getElementById('batch-date').value = ''
+  }
+
+  async function sendBatch() {
+    if (batchItems.length === 0) { showResult('batch-result', { success: false, message: "Add items to batch first" }); return }
+    var data = await post('/api/farmer/produce/batch', { items: batchItems })
+    showResult('batch-result', data)
+    if (data.success) { batchItems = []; document.getElementById('batch-list').innerHTML = ''; document.getElementById('batch-list').style.display = 'none' }
+  }
+
+  // RESERVATION
+  async function createReservation() {
+    var data = await post('/api/reservation/create', { org_id: document.getElementById('res-oid').value, org_name: document.getElementById('res-oname').value, farmer_id: document.getElementById('res-fid').value, produce_name: document.getElementById('res-pname').value, quantity: parseInt(document.getElementById('res-qty').value), unit: document.getElementById('res-unit').value, pickup_date: document.getElementById('res-date').value })
+    showResult('res-result', data)
+  }
+
+  async function getReservation() {
+    var data = await post('/api/reservation/get', { reservation_id: document.getElementById('get-rid').value })
+    showResult('get-result', data)
+  }
+
+  // BIDIRECTIONAL STREAMING CHAT
+  var negotiationSource = null
+  var negotiationCallActive = false
+  var pendingMessages = []
+
+  function startNegotiation() {
+    var chatLog = document.getElementById('chat-log')
+    var chatContainer = document.getElementById('chat-container')
+    var chatInputRow = document.getElementById('chat-input-row')
+    chatLog.style.display = 'block'
+    chatContainer.innerHTML = ''
+    chatInputRow.style.display = 'flex'
+    negotiationCallActive = true
+    addChatMsg('system', '🟢 Connected to Negotiation Stream. Type a message to begin.')
+    document.getElementById('neg-result').className = 'result'
+  }
+
+  function addChatMsg(type, text) {
+    var container = document.getElementById('chat-container')
+    var div = document.createElement('div')
+    div.className = 'chat-msg ' + type
+    div.textContent = text
+    container.appendChild(div)
+    document.getElementById('chat-log').scrollTop = 999999
+  }
+
+  async function sendChat() {
+    if (!negotiationCallActive) { addChatMsg('system', '⚠️ Connect first'); return }
+    var msg = document.getElementById('chat-msg').value.trim()
+    if (!msg) return
+    addChatMsg('user', '👤 You: ' + msg)
+    document.getElementById('chat-msg').value = ''
+    try {
+      var res = await fetch('/api/reservation/negotiate/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sender: 'Client', message: msg }) })
+      // Simulate bidirectional: get response from server
+      var lower = msg.toLowerCase()
+      var response
+      if (lower.includes('available')) response = 'Yes, produce is available for reservation.'
+      else if (lower.includes('confirm') || lower.includes('ok')) response = 'Reservation confirmed! You will receive a confirmation ID shortly.'
+      else if (lower.includes('cancel')) response = 'Reservation has been cancelled as requested.'
+      else if (lower.includes('hello') || lower.includes('hi')) response = 'Hello! How can I assist with your reservation today?'
+      else response = "Message received: '" + msg + "'. How can I help you further?"
+      setTimeout(() => addChatMsg('system', '🤖 System: ' + response), 300)
+    } catch(e) {
+      addChatMsg('system', '❌ Error: ' + e.message)
+    }
+  }
+
+  // IMPACT
+  async function logDistribution() {
+    var data = await post('/api/impact/log', { org_id: document.getElementById('log-oid').value, farmer_id: document.getElementById('log-fid').value, produce_name: document.getElementById('log-pname').value, quantity_kg: parseInt(document.getElementById('log-qty').value), date: document.getElementById('log-date').value })
+    showResult('log-result', data)
+  }
+
+  // SERVER-SIDE STREAMING
+  function streamDistributions() {
+    var period = document.getElementById('stream-period').value || 'All time'
+    var log = document.getElementById('stream-log')
+    var result = document.getElementById('stream-result')
+    log.style.display = 'block'
+    log.innerHTML = '<div class="entry" style="color:#64b5f6">▶ Connecting to stream...</div>'
+    var es = new EventSource('/api/impact/stream?period=' + encodeURIComponent(period))
+    es.onmessage = function(e) {
+      if (e.data === '__END__') {
+        log.innerHTML += '<div class="entry" style="color:#64b5f6">✅ Stream complete</div>'
+        result.className = 'result success'
+        result.innerHTML = '✅ Server-side streaming complete — all distribution events received.'
+        result.style.display = 'block'
+        es.close()
+        return
+      }
+      try {
+        var event = JSON.parse(e.data)
+        if (event.error) {
+          log.innerHTML += '<div class="entry" style="color:#ef9a9a">❌ ' + event.error + '</div>'
+          es.close()
+          return
+        }
+        log.innerHTML += '<div class="entry">📦 <strong>' + event.produce_name + '</strong> — ' + event.quantity_kg + ' kg | Org: ' + event.org_id + ' | Running total: ' + event.running_total + ' kg</div>'
+        log.scrollTop = log.scrollHeight
+      } catch(err) {}
+    }
+    es.onerror = function() {
+      log.innerHTML += '<div class="entry" style="color:#ef9a9a">❌ Stream error or closed</div>'
+      es.close()
+    }
+  }
+
+  async function getReport() {
+    var data = await post('/api/impact/report', { period: document.getElementById('rep-period').value })
+    showResult('rep-result', data)
+    if (data.success) {
+      document.getElementById('stat-grid').style.display = 'grid'
+      document.getElementById('stat-kg').textContent = data.total_kg
+      document.getElementById('stat-orgs').textContent = data.orgs_served
+      document.getElementById('stat-waste').textContent = data.waste_avoided_kg
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package impact;
+
+service ImpactTrackerService {
+  // Unary
+  rpc LogDistribution (DistributionRequest) returns (DistributionResponse) {}
+  rpc GetImpactReport (ReportRequest) returns (ReportResponse) {}
+
+  // Server-side streaming: stream distribution events live
+  rpc StreamDistributions (ReportRequest) returns (stream DistributionEvent) {}
+}
+
+message DistributionRequest {
+  string org_id = 1;
+  string farmer_id = 2;
+  string produce_name = 3;
+  uint32 quantity_kg = 4;
+  string date = 5;
+}
+
+message DistributionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ReportRequest {
+  string period = 1;
+}
+
+message ReportResponse {
+  bool success = 1;
+  string period = 2;
+  uint32 total_kg = 3;
+  uint32 orgs_served = 4;
+  uint32 waste_avoided_kg = 5;
+  string message = 6;
+}
+
+message DistributionEvent {
+  string org_id = 1;
+  string farmer_id = 2;
+  string produce_name = 3;
+  uint32 quantity_kg = 4;
+  string date = 5;
+  uint32 running_total = 6;
+}

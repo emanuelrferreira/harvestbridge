@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package reservation;
+
+service ReservationService {
+  // Unary
+  rpc CreateReservation (ReservationRequest) returns (ReservationResponse) {}
+  rpc GetReservation (GetReservationRequest) returns (ReservationResponse) {}
+
+  // Bidirectional streaming: live reservation negotiation
+  rpc NegotiateReservation (stream NegotiationMessage) returns (stream NegotiationMessage) {}
+}
+
+message ReservationRequest {
+  string org_id = 1;
+  string org_name = 2;
+  string farmer_id = 3;
+  string produce_name = 4;
+  uint32 quantity = 5;
+  string unit = 6;
+  string pickup_date = 7;
+}
+
+message GetReservationRequest {
+  string reservation_id = 1;
+}
+
+message ReservationResponse {
+  bool success = 1;
+  string reservation_id = 2;
+  string status = 3;
+  string pickup_date = 4;
+  string message = 5;
+}
+
+message NegotiationMessage {
+  string sender = 1;
+  string message = 2;
+  string timestamp = 3;
+}
