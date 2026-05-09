@@ -2,22 +2,31 @@ var grpc = require('@grpc/grpc-js')
 var protoLoader = require('@grpc/proto-loader')
 var path = require('path')
 
+// load the proto file for the farmer service
 var PROTO_PATH = path.join(__dirname, '../protos/farmer.proto')
+
+// keepCase makes sure field names like farmer_id stay as is
 var packageDefinition = protoLoader.loadSync(PROTO_PATH, { keepCase: true, longs: String, enums: String, defaults: true, oneofs: true })
 var farmer_proto = grpc.loadPackageDefinition(packageDefinition).farmer
 
+// store farmers and their produce in memory
 var farmers = {}
 var produce = {}
 
+// unary - register a new farmer
 function RegisterFarmer(call, callback) {
   try {
+    // log incoming request for debugging
     console.log("[FarmerService] RegisterFarmer:", JSON.stringify(call.request))
+
+    // make sure all fields are filled in
     var id = (call.request.farmer_id || "").toString().trim()
     var name = (call.request.name || "").toString().trim()
     var location = (call.request.location || "").toString().trim()
     if (!id) return callback(null, { success: false, message: "Farmer ID is required", farmer_id: "" })
     if (!name) return callback(null, { success: false, message: "Name is required", farmer_id: "" })
     if (!location) return callback(null, { success: false, message: "Location is required", farmer_id: "" })
+      // verification - dont allow duplicate farmer IDs
     if (farmers[id]) return callback(null, { success: false, message: "Farmer ID already exists", farmer_id: id })
     farmers[id] = { name, location }
     produce[id] = []
@@ -27,6 +36,7 @@ function RegisterFarmer(call, callback) {
   }
 }
 
+// unary - add a single produce item
 function AddProduce(call, callback) {
   try {
     console.log("[FarmerService] AddProduce:", JSON.stringify(call.request))
@@ -44,6 +54,7 @@ function AddProduce(call, callback) {
   }
 }
 
+// unary - return all produce for a given farmer
 function ListProduce(call, callback) {
   try {
     var farmer_id = (call.request.farmer_id || "").toString().trim()
@@ -54,9 +65,12 @@ function ListProduce(call, callback) {
   }
 }
 
+// client-side streaming - receive multiple produce items at once
 function AddMultipleProduce(call, callback) {
   var items_added = 0
   var errors = []
+
+  // each time a new item arrives from the stream
   call.on('data', function(request) {
     try {
       var farmer_id = (request.farmer_id || "").toString().trim()
@@ -72,6 +86,8 @@ function AddMultipleProduce(call, callback) {
       }
     } catch (e) { errors.push(e.message) }
   })
+
+  // when client finishes sending, respond with total
   call.on('end', function() {
     if (errors.length > 0) {
       callback(null, { success: false, message: "Errors: " + errors.join(", "), items_added })
@@ -79,6 +95,8 @@ function AddMultipleProduce(call, callback) {
       callback(null, { success: true, message: items_added + " items added via streaming", items_added })
     }
   })
+
+  // handle stream errors
   call.on('error', function(e) { console.log("[FarmerService] Stream error:", e.message) })
 }
 

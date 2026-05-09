@@ -6,9 +6,12 @@ var PROTO_PATH = path.join(__dirname, '../protos/reservation.proto')
 var packageDefinition = protoLoader.loadSync(PROTO_PATH, { keepCase: true, longs: String, enums: String, defaults: true, oneofs: true })
 var reservation_proto = grpc.loadPackageDefinition(packageDefinition).reservation
 
+// store reservations in memory
 var reservations = {}
-var counter = 1
+var counter = 1 // used to generate reservation IDs like R001, R002
 
+
+// unary - create a new reservation
 function CreateReservation(call, callback) {
   try {
     console.log("[ReservationService] CreateReservation:", JSON.stringify(call.request))
@@ -25,6 +28,8 @@ function CreateReservation(call, callback) {
     if (!quantity) return callback(null, { success: false, reservation_id: "", status: "failed", pickup_date: "", message: "Quantity must be greater than 0" })
     if (!unit) return callback(null, { success: false, reservation_id: "", status: "failed", pickup_date: "", message: "Unit is required" })
     if (!pickup_date) return callback(null, { success: false, reservation_id: "", status: "failed", pickup_date: "", message: "Pickup date is required" })
+
+      // auto generate a reservation ID
     var reservation_id = "R" + String(counter).padStart(3, "0")
     counter++
     reservations[reservation_id] = { org_id, org_name, farmer_id, produce_name, quantity, unit, pickup_date, status: "confirmed" }
@@ -35,6 +40,7 @@ function CreateReservation(call, callback) {
   }
 }
 
+// unary - look up an existing reservation by ID
 function GetReservation(call, callback) {
   try {
     console.log("[ReservationService] GetReservation:", JSON.stringify(call.request))
@@ -47,9 +53,13 @@ function GetReservation(call, callback) {
   }
 }
 
+// bidirectional streaming - live negotiation between org and system
 function NegotiateReservation(call) {
   console.log("[ReservationService] Bidirectional stream opened")
+
+  // listen for messages from the client
   call.on('data', function(message) {
+    // respond based on what the client said
     var sender = (message.sender || "Client").toString()
     var text = (message.message || "").toString()
     var timestamp = new Date().toISOString()
@@ -69,6 +79,8 @@ function NegotiateReservation(call) {
     }
     call.write({ sender: "HarvestBridge System", message: response, timestamp })
   })
+
+  // when client closes the stream, close ours too
   call.on('end', function() {
     console.log("[ReservationService] Bidirectional stream closed")
     call.end()

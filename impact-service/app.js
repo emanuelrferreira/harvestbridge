@@ -6,8 +6,10 @@ var PROTO_PATH = path.join(__dirname, '../protos/impact.proto')
 var packageDefinition = protoLoader.loadSync(PROTO_PATH, { keepCase: true, longs: String, enums: String, defaults: true, oneofs: true })
 var impact_proto = grpc.loadPackageDefinition(packageDefinition).impact
 
+// keep all distribution records in memory
 var distributions = []
 
+// unary - log a completed food distribution
 function LogDistribution(call, callback) {
   try {
     console.log("[ImpactTrackerService] LogDistribution:", JSON.stringify(call.request))
@@ -27,12 +29,14 @@ function LogDistribution(call, callback) {
   }
 }
 
+// unary - generate a summary report
 function GetImpactReport(call, callback) {
   try {
     var period = (call.request.period || "All time").toString()
     var total_kg = 0
-    var orgs = new Set()
+    var orgs = new Set() // set avoids counting same org twice
     distributions.forEach(function(d) { total_kg += d.quantity_kg; orgs.add(d.org_id) })
+    // 82% estimate based on typical food recovery rates
     var waste_avoided_kg = Math.floor(total_kg * 0.82)
     console.log("[ImpactTrackerService] Report generated for:", period)
     callback(null, { success: true, period, total_kg, orgs_served: orgs.size, waste_avoided_kg, message: "Report generated successfully" })
@@ -41,6 +45,7 @@ function GetImpactReport(call, callback) {
   }
 }
 
+// server-side streaming - stream each distribution event one by one
 function StreamDistributions(call) {
   console.log("[ImpactTrackerService] Server-side streaming started")
   var period = (call.request.period || "").toString()
@@ -51,6 +56,8 @@ function StreamDistributions(call) {
     return
   }
   var index = 0
+
+  // send events with a small delay to simulate real-time feed
   var interval = setInterval(function() {
     if (index >= distributions.length) {
       clearInterval(interval)
@@ -63,6 +70,8 @@ function StreamDistributions(call) {
     call.write({ org_id: d.org_id, farmer_id: d.farmer_id, produce_name: d.produce_name, quantity_kg: d.quantity_kg, date: d.date, running_total })
     index++
   }, 500)
+
+  // if client cancels, stop the interval
   call.on('cancelled', function() { clearInterval(interval) })
 }
 
