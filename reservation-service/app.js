@@ -5,6 +5,7 @@ var path = require('path')
 var PROTO_PATH = path.join(__dirname, '../protos/reservation.proto')
 var packageDefinition = protoLoader.loadSync(PROTO_PATH, { keepCase: true, longs: String, enums: String, defaults: true, oneofs: true })
 var reservation_proto = grpc.loadPackageDefinition(packageDefinition).reservation
+console.log("Starting ReservationService...")
 
 // store reservations in memory
 var reservations = {}

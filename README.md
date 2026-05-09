@@ -25,3 +25,8 @@ Open browser at: http://localhost:3000
 - Client-Side Streaming — Batch Add Produce (FarmerService)
 - Server-Side Streaming — Live Distribution Stream (ImpactTrackerService)
 - Bidirectional Streaming — Live Negotiation Chat (ReservationService)
+
+## Troubleshooting
+- Make sure all 4 terminals are running before opening the browser
+- If farmer registration fails, check that farmer-service is running on port 4001
+- If you see CRLF warnings in git, they can be safely ignored on Windows

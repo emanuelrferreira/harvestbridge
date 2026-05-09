@@ -5,6 +5,7 @@ var path = require('path')
 var PROTO_PATH = path.join(__dirname, '../protos/impact.proto')
 var packageDefinition = protoLoader.loadSync(PROTO_PATH, { keepCase: true, longs: String, enums: String, defaults: true, oneofs: true })
 var impact_proto = grpc.loadPackageDefinition(packageDefinition).impact
+console.log("Starting ImpactTrackerService...")
 
 // keep all distribution records in memory
 var distributions = []

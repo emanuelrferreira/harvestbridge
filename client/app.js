@@ -16,6 +16,11 @@ var farmerClient = new farmerProto.FarmerService("0.0.0.0:4001", grpc.credential
 var reservationClient = new reservationProto.ReservationService("0.0.0.0:4002", grpc.credentials.createInsecure())
 var impactClient = new impactProto.ImpactTrackerService("0.0.0.0:4003", grpc.credentials.createInsecure())
 
+// simple health check to confirm client is running
+app.get('/health', function(req, res) {
+  res.json({ status: 'ok', message: 'HarvestBridge client is running' })
+})
+
 // FARMER - Unary
 app.post('/api/farmer/register', function(req, res) {
   farmerClient.RegisterFarmer(req.body, function(err, response) {

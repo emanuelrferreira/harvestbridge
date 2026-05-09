@@ -8,6 +8,7 @@ var PROTO_PATH = path.join(__dirname, '../protos/farmer.proto')
 // keepCase makes sure field names like farmer_id stay as is
 var packageDefinition = protoLoader.loadSync(PROTO_PATH, { keepCase: true, longs: String, enums: String, defaults: true, oneofs: true })
 var farmer_proto = grpc.loadPackageDefinition(packageDefinition).farmer
+console.log("Starting Farmer Service...")
 
 // store farmers and their produce in memory
 var farmers = {}
