@@ -1,6 +1,13 @@
 # 🌾 HarvestBridge
 Smart food distribution system — SDG 12: Responsible Consumption and Production
 
+## Technologies Used
+- Node.js
+- gRPC (@grpc/grpc-js)
+- Protocol Buffers (proto3)
+- Express.js
+- HTML/CSS/JavaScript
+
 ## How to Run
 Open 4 terminals:
 
