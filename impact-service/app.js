@@ -52,6 +52,7 @@ function StreamDistributions(call) {
   var period = (call.request.period || "").toString()
   var running_total = 0
   if (distributions.length === 0) {
+    console.log("[ImpactTrackerService] No distributions to stream yet")
     call.write({ org_id: "SYSTEM", farmer_id: "-", produce_name: "No distributions logged yet", quantity_kg: 0, date: new Date().toISOString().split("T")[0], running_total: 0 })
     call.end()
     return
